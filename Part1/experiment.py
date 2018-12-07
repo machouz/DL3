@@ -59,6 +59,7 @@ def sentence2ids(sentence):
 def train_model(model, optimizer, train_data):
     model.train()
     for i in xrange(0, len(train_data)):
+        print i
         data = train_data[i][:-1]
         label = train_data[i][-1]
         optimizer.zero_grad()
@@ -79,10 +80,14 @@ def loss_accuracy(model, test_data):
         loss += F.cross_entropy(output.unsqueeze(0), label.unsqueeze(0))
         pred = output.data.max(0, keepdim=True)[1].view(-1)
         correct += (pred == label).cpu().sum().item()
-        count += len(data)
+        count += 1
 
     acc = correct / count
-    loss = loss / len(test_data)
+    loss = loss / count
+
+    print('Total loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+        loss, correct, count, 100. * acc))
+
     return loss, acc
 
 
@@ -110,6 +115,6 @@ if __name__ == '__main__':
             loss, accuracy = loss_accuracy(acceptor, train_data)
             loss_history.append(loss)
             accuracy_history.append(accuracy)
-        train_model(acceptor, optimizer, train_data)
+        #train_model(acceptor, optimizer, train_data)
         for g in optimizer.param_groups:
             g['lr'] = g['lr'] * LR_DECAY
