@@ -2,7 +2,7 @@ import random
 from string import ascii_letters, digits, printable
 import numpy as np
 
-LIMIT = 30
+LIMIT = 10
 
 
 def choices(pool, k=1):

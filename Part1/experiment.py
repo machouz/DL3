@@ -6,7 +6,7 @@ import numpy as np
 from random import shuffle
 
 EPOCHS = 10
-HIDDEN_RNN = 30
+HIDDEN_RNN = 10
 HIDDEN_MLP = 30
 EMBEDDING = 50
 BATCH_SIZE = 1
@@ -41,10 +41,12 @@ class Acceptor(nn.Module):
                 torch.zeros(1, 1, self.hidden_lstm))
 
     def forward(self, sentence):
+        self.hidden = (self.hidden[0].detach(), self.hidden[1].detach())
         embeds = self.word_embeddings(sentence)
+        lstm_in = embeds.view(sentence.shape[1], 1, -1)
         lstm_out, self.hidden = self.lstm(
-            embeds.view(len(sentence), 1, -1), self.hidden)
-        input = lstm_out.view(len(sentence), -1)[-1]
+            lstm_in, self.hidden)
+        input = lstm_out.view(sentence.shape[1], 1, -1)[-1]
         out = self.fc1(input)
         out = F.tanh(out)
         tag_space = self.hidden2tag(out)
@@ -60,11 +62,11 @@ def train_model(model, optimizer, train_data):
     model.train()
     for i in xrange(0, len(train_data)):
         print i
-        data = train_data[i][:-1]
-        label = train_data[i][-1]
+        data = train_data[i][:-1].unsqueeze(0)
+        label = train_data[i][-1].unsqueeze(0)
         optimizer.zero_grad()
         output = model(data)
-        loss = F.cross_entropy(output.unsqueeze(0), label.unsqueeze(0))
+        loss = F.cross_entropy(output, label)
         loss.backward()
         optimizer.step()
 
@@ -74,11 +76,11 @@ def loss_accuracy(model, test_data):
     loss = correct = count = 0.0
 
     for i in xrange(0, len(test_data)):
-        data = test_data[i][:-1]
-        label = test_data[i][-1]
+        data = test_data[i][:-1].unsqueeze(0)
+        label = test_data[i][-1].unsqueeze(0)
         output = model(data)
-        loss += F.cross_entropy(output.unsqueeze(0), label.unsqueeze(0))
-        pred = output.data.max(0, keepdim=True)[1].view(-1)
+        loss += F.cross_entropy(output, label)
+        pred = output.data.max(1, keepdim=True)[1].view(-1)
         correct += (pred == label).cpu().sum().item()
         count += 1
 
@@ -103,9 +105,8 @@ if __name__ == '__main__':
     train_data = pos_examples + neg_examples
     shuffle(train_data)
 
-
     acceptor = Acceptor(EMBEDDING, HIDDEN_RNN, HIDDEN_MLP, vocab_size=len(vocab))
-    optimizer = optim.SGD(acceptor.parameters(), lr=LR)
+    optimizer = optim.Adam(acceptor.parameters(), lr=LR)
 
     loss_history = []
     accuracy_history = []
@@ -115,6 +116,6 @@ if __name__ == '__main__':
             loss, accuracy = loss_accuracy(acceptor, train_data)
             loss_history.append(loss)
             accuracy_history.append(accuracy)
-        #train_model(acceptor, optimizer, train_data)
+        train_model(acceptor, optimizer, train_data)
         for g in optimizer.param_groups:
             g['lr'] = g['lr'] * LR_DECAY
