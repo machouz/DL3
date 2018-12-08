@@ -1,3 +1,4 @@
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -7,7 +8,7 @@ from random import shuffle
 
 EPOCHS = 10
 HIDDEN_RNN = 10
-HIDDEN_MLP = 30
+HIDDEN_MLP = 5
 EMBEDDING = 50
 BATCH_SIZE = 1
 LR = 0.001
@@ -49,7 +50,7 @@ class Acceptor(nn.Module):
         out = self.fc1(input)
         out = F.tanh(out)
         tag_space = self.hidden2tag(out)
-        tag_scores = F.softmax(tag_space)
+        tag_scores = F.log_softmax(tag_space)
         return tag_scores
 
 
@@ -61,7 +62,6 @@ def train_model(model, optimizer, train_data):
     model.train()
     for i in xrange(0, len(train_data)):
         model.hidden = (model.hidden[0].detach(), model.hidden[1].detach())
-        print i
         data = train_data[i][:-1].unsqueeze(0)
         label = train_data[i][-1].unsqueeze(0)
         optimizer.zero_grad()
@@ -102,20 +102,28 @@ if __name__ == '__main__':
     neg_examples = map(lambda sentence: sentence2ids(sentence), neg_examples)
     neg_examples = map(lambda x: torch.LongTensor(x + [0]), neg_examples)
 
-    train_data = pos_examples + neg_examples
-    shuffle(train_data)
-
+    data = pos_examples + neg_examples
+    shuffle(data)
+    train_len = int(len(data) * 0.8)
+    train = data[:train_len]
+    dev = data[train_len:]
     acceptor = Acceptor(EMBEDDING, HIDDEN_RNN, HIDDEN_MLP, vocab_size=len(vocab))
     optimizer = optim.Adam(acceptor.parameters(), lr=LR)
 
     loss_history = []
     accuracy_history = []
+    launch = time.time()
     for epoch in range(0, EPOCHS):
         print('Epoch {}'.format(epoch))
-        if epoch % 2 == 1:
-            loss, accuracy = loss_accuracy(acceptor, train_data)
+        if epoch % 1 == 0:
+            loss, accuracy = loss_accuracy(acceptor, dev)
             loss_history.append(loss)
             accuracy_history.append(accuracy)
-        train_model(acceptor, optimizer, train_data)
+            if accuracy == 1:
+                print('Succeeded in distinguishing the two languages after {} done in {}'
+                      .format(epoch, time.time() - launch))
+                loss, accuracy = loss_accuracy(acceptor, train)
+                break
+        train_model(acceptor, optimizer, train)
         for g in optimizer.param_groups:
             g['lr'] = g['lr'] * LR_DECAY
