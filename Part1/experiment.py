@@ -119,7 +119,7 @@ if __name__ == '__main__':
             loss, accuracy = loss_accuracy(acceptor, dev)
             loss_history.append(loss)
             accuracy_history.append(accuracy)
-            if accuracy == 1:
+            if accuracy > 0.98:
                 print('Succeeded in distinguishing the two languages after {} done in {}'
                       .format(epoch, time.time() - launch))
                 loss, accuracy = loss_accuracy(acceptor, train)
