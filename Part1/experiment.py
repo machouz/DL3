@@ -10,7 +10,7 @@ HIDDEN_RNN = 10
 HIDDEN_MLP = 30
 EMBEDDING = 50
 BATCH_SIZE = 1
-LR = 0.01
+LR = 0.001
 LR_DECAY = 1
 vocab = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd']
 word_id = {word: i for i, word in enumerate(vocab)}
@@ -41,7 +41,6 @@ class Acceptor(nn.Module):
                 torch.zeros(1, 1, self.hidden_lstm))
 
     def forward(self, sentence):
-        self.hidden = (self.hidden[0].detach(), self.hidden[1].detach())
         embeds = self.word_embeddings(sentence)
         lstm_in = embeds.view(sentence.shape[1], 1, -1)
         lstm_out, self.hidden = self.lstm(
@@ -61,6 +60,7 @@ def sentence2ids(sentence):
 def train_model(model, optimizer, train_data):
     model.train()
     for i in xrange(0, len(train_data)):
+        model.hidden = (model.hidden[0].detach(), model.hidden[1].detach())
         print i
         data = train_data[i][:-1].unsqueeze(0)
         label = train_data[i][-1].unsqueeze(0)
@@ -112,7 +112,7 @@ if __name__ == '__main__':
     accuracy_history = []
     for epoch in range(0, EPOCHS):
         print('Epoch {}'.format(epoch))
-        if epoch % 1 == 0:
+        if epoch % 2 == 1:
             loss, accuracy = loss_accuracy(acceptor, train_data)
             loss_history.append(loss)
             accuracy_history.append(accuracy)
