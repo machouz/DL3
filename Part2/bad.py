@@ -7,10 +7,10 @@ from gen_examples import *
 from experiment import *
 
 vocab = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd']
-USE_PALINDROM = True if len(sys.argv) > 1 else False
+USE_PALINDROME = True if len(sys.argv) > 1 else False
 
 
-def gen_palindrom(k=4):
+def gen_palindrome(k=4):
     pos_examples = []
     neg_examples = []
     for i in range(500):
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     word_id = {word: i for i, word in enumerate(vocab)}
 
     pos_examples, neg_examples = gen_series()
-    # pos_examples, neg_examples = gen_palindrom() if USE_PALINDROM else gen_series()
+    # pos_examples, neg_examples = gen_palindrome() if USE_PALINDROME else gen_series()
 
     pos_examples = map(lambda sentence: sentence2ids(sentence, word_id), pos_examples)
     pos_examples = map(lambda x: torch.LongTensor(x + [1]), pos_examples)
