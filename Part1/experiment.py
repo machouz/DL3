@@ -14,7 +14,6 @@ BATCH_SIZE = 1
 LR = 0.001
 LR_DECAY = 1
 vocab = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd']
-word_id = {word: i for i, word in enumerate(vocab)}
 
 
 class Acceptor(nn.Module):
@@ -54,7 +53,7 @@ class Acceptor(nn.Module):
         return tag_scores
 
 
-def sentence2ids(sentence):
+def sentence2ids(sentence, word_id):
     return map(lambda char: word_id[char], sentence)
 
 
@@ -94,12 +93,14 @@ def loss_accuracy(model, test_data):
 
 
 if __name__ == '__main__':
+    word_id = {word: i for i, word in enumerate(vocab)}
+
     pos_examples = np.loadtxt("pos_examples", dtype=np.str)
-    pos_examples = map(lambda sentence: sentence2ids(sentence), pos_examples)
+    pos_examples = map(lambda sentence: sentence2ids(sentence, word_id), pos_examples)
     pos_examples = map(lambda x: torch.LongTensor(x + [1]), pos_examples)
 
     neg_examples = np.loadtxt("neg_examples", dtype=np.str)
-    neg_examples = map(lambda sentence: sentence2ids(sentence), neg_examples)
+    neg_examples = map(lambda sentence: sentence2ids(sentence, word_id), neg_examples)
     neg_examples = map(lambda x: torch.LongTensor(x + [0]), neg_examples)
 
     data = pos_examples + neg_examples

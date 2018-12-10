@@ -6,7 +6,6 @@ import numpy as np
 LIMIT = int(sys.argv[1]) if len(sys.argv) > 1 else 10
 
 
-
 def choices(pool, k=1):
     r = ""
     for i in range(k, 0, -1):
@@ -63,13 +62,17 @@ def gen_text(rules, limit=LIMIT):
     return s
 
 
+def gen_ex(regex, k=500):
+    examples = []
+    for i in xrange(0, k):
+        examples.append(gen_text(regex))
+    return examples
+
+
 if __name__ == '__main__':
     positiveRegex = "[1-9]+a+[1-9]+b+[1-9]+c+[1-9]+d+[1-9]+"
     negativeRegex = "[1-9]+a+[1-9]+c+[1-9]+b+[1-9]+d+[1-9]+"
-    pos_examples = []
-    neg_examples = []
-    for i in xrange(0, 500):
-        pos_examples.append(gen_text(positiveRegex))
-        neg_examples.append(gen_text(negativeRegex))
+    pos_examples = gen_ex(positiveRegex)
+    neg_examples = gen_ex(negativeRegex)
     np.savetxt("pos_examples", pos_examples, fmt="%s")
     np.savetxt("neg_examples", neg_examples, fmt="%s")
