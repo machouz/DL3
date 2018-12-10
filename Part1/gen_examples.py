@@ -52,6 +52,10 @@ def gen_text(rules, limit=LIMIT):
             if rules[i] == "*":
                 k = random.randint(0, limit)
                 i += 1
+            elif rules[i] == '{':
+                i += 1
+                k = int(rules[i])
+                i += 2
             elif rules[i] == "+":
                 k = random.randint(1, limit)
                 i += 1
