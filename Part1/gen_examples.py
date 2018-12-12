@@ -3,7 +3,6 @@ import sys
 from string import ascii_letters, digits, printable
 import numpy as np
 
-LIMIT = int(sys.argv[1]) if len(sys.argv) > 1 else 10
 
 
 def choices(pool, k=1):
@@ -13,7 +12,7 @@ def choices(pool, k=1):
     return r
 
 
-def gen_text(rules, limit=LIMIT):
+def gen_text(rules, limit=10):
     s = ""
     i = 0
     while i < len(rules):
@@ -70,9 +69,10 @@ def gen_ex(regex, k=500):
 
 
 if __name__ == '__main__':
+    LIMIT = int(sys.argv[1]) if len(sys.argv) > 1 else 10
     positiveRegex = "[1-9]+a+[1-9]+b+[1-9]+c+[1-9]+d+[1-9]+"
     negativeRegex = "[1-9]+a+[1-9]+c+[1-9]+b+[1-9]+d+[1-9]+"
-    pos_examples = gen_ex(positiveRegex)
-    neg_examples = gen_ex(negativeRegex)
+    pos_examples = gen_ex(positiveRegex,LIMIT)
+    neg_examples = gen_ex(negativeRegex,LIMIT)
     np.savetxt("pos_examples", pos_examples, fmt="%s")
     np.savetxt("neg_examples", neg_examples, fmt="%s")
