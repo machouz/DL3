@@ -38,12 +38,13 @@ class Acceptor(nn.Module):
 
         # The LSTM takes word embeddings as inputs, and outputs hidden states
         # with dimensionality hidden_dim.
-        self.lstm1 = nn.LSTM(embedding_dim, hidden_lstm[0] // 2, bidirectional=bidirectional)
+        self.lstm1 = nn.LSTM(embedding_dim, hidden_lstm[0] // 2, bidirectional=bidirectional, batch_first=True)
 
-        self.lstm2 = nn.LSTM(hidden_lstm[0], hidden_lstm[1] // 2, bidirectional=bidirectional)
+        self.lstm2 = nn.LSTM(hidden_lstm[0], hidden_lstm[1] // 2, bidirectional=bidirectional, batch_first=True)
 
         # The linear layer that maps from hidden state space to tag space
         self.hidden2tag = nn.Linear(hidden_lstm[1], tagset_size)
+        self.init_hidden()
 
     def init_hidden(self, batch_size=1):
         # Before we've done anything, we dont have any hidden state.
@@ -57,9 +58,8 @@ class Acceptor(nn.Module):
 
     def forward(self, sentence):
         embeds = self.word_embeddings(sentence)
-        lstm_in = embeds.view(sentence.shape[1], sentence.shape[0], -1)
         lstm_out, self.hidden1 = self.lstm1(
-            lstm_in)
+            embeds)
         lstm_out, self.hidden2 = self.lstm2(
             lstm_out)
         tag_space = self.hidden2tag(lstm_out)
@@ -89,8 +89,8 @@ def loss_accuracy(model, test_data):
     id_sentences, id_tags = test_data
     for i in xrange(0, len(id_sentences), 1):
         print i
-        data = id_sentences[i:i + 1]
-        label = id_tags[i:i + 1]
+        data = id_sentences[i].unsqueeze(0)
+        label = id_tags[i].unsqueeze(0)
         output = model(data)
         loss += F.cross_entropy(output, label)
         pred = output.data.max(1, keepdim=True)[1].view(label.shape)
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     train_vecs = data(train_sentences, train_tagged_sentences, words_id, label_id)
 
     dev_sentences, dev_tagged_sentences = load_train_by_sentence(dev_name)
-    dev_vecs = data(dev_sentences, dev_tagged_sentences, words_id, label_id)
+    dev_vecs = data(dev_sentences, dev_tagged_sentences, words_id, label_id, for_batch=False)
 
     acceptor = Acceptor(EMBEDDING, HIDDEN_RNN, vocab_size=len(words_id), tagset_size=len(label_id))
     optimizer = optim.Adam(acceptor.parameters(), lr=LR)
@@ -144,7 +144,7 @@ if __name__ == '__main__':
     timer = Timer(time.time())
     for epoch in range(0, EPOCHS):
         print('Epoch {}'.format(epoch))
-        if epoch % 1 == 0:
+        if epoch % 3 == 0:
             loss, accuracy = loss_accuracy(acceptor, dev_vecs)
             loss_history.append(loss)
             accuracy_history.append(accuracy)
@@ -153,6 +153,6 @@ if __name__ == '__main__':
                       .format(epoch, timer.next()))
                 loss, accuracy = loss_accuracy(acceptor, train_vecs)
                 break
-        train_model(acceptor, optimizer, train_vecs)
+        train_model(acceptor, optimizer, train_vecs, batch_size=BATCH_SIZE)
         for g in optimizer.param_groups:
             g['lr'] = g['lr'] * LR_DECAY
