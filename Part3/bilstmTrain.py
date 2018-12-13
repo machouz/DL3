@@ -62,9 +62,10 @@ class Acceptor(nn.Module):
             embeds)
         lstm_out, self.hidden2 = self.lstm2(
             lstm_out)
-        lstm_out = lstm_out.reshape(lstm_out.size(0) * lstm_out.size(1), lstm_out.size(2))
+        if sentence.shape[0] == 1:
+            lstm_out = lstm_out.reshape(lstm_out.size(0) * lstm_out.size(1), lstm_out.size(2))
         tag_space = self.hidden2tag(lstm_out)
-        tag_scores = F.log_softmax(tag_space) # shape batch,classes,size
+        tag_scores = F.log_softmax(tag_space)  # shape batch,classes,size
         return tag_scores
 
 
@@ -74,15 +75,17 @@ def train_model(model, optimizer, train_data, batch_size):
     model.init_hidden(batch_size)
     for i in xrange(0, 500, batch_size):
         print i
-        data = id_sentences[i].unsqueeze(0)
-        label = id_tags[i]
-        if batch_size != 1:
-            data = pad_sequence(data, batch_first=True)
-            label = pad_sequence(label, batch_first=True)
+        data = id_sentences[i:i + batch_size]
+        label = id_tags[i:i + batch_size]
+        B = len(label)
+        N = label[0].shape[0]
+        data = pad_sequence(data, batch_first=True)
+        label = pad_sequence(label, batch_first=True)
+        label = label.reshape(N, B)
         model.hidden1 = (model.hidden1[0].detach(), model.hidden1[1].detach())
         model.hidden2 = (model.hidden2[0].detach(), model.hidden2[1].detach())
         optimizer.zero_grad()
-        output = model(data)
+        output = model(data).reshape(N, -1, B)
         loss = F.cross_entropy(output, label)
         loss.backward()
         optimizer.step()
