@@ -62,18 +62,23 @@ class Acceptor(nn.Module):
             embeds)
         lstm_out, self.hidden2 = self.lstm2(
             lstm_out)
+        lstm_out = lstm_out.reshape(lstm_out.size(0) * lstm_out.size(1), lstm_out.size(2))
         tag_space = self.hidden2tag(lstm_out)
-        tag_scores = F.log_softmax(tag_space).view(sentence.shape[0], -1, sentence.shape[1])  # shape batch,classes,size
+        tag_scores = F.log_softmax(tag_space) # shape batch,classes,size
         return tag_scores
 
 
-def train_model(model, optimizer, train_data, batch_size=1000):
+def train_model(model, optimizer, train_data, batch_size):
     model.train()
     id_sentences, id_tags = train_data
-    for i in xrange(0, len(id_sentences) / 10, batch_size):
+    model.init_hidden(batch_size)
+    for i in xrange(0, 500, batch_size):
         print i
-        data = id_sentences[i:i + batch_size]
-        label = id_tags[i:i + batch_size]
+        data = id_sentences[i].unsqueeze(0)
+        label = id_tags[i]
+        if batch_size != 1:
+            data = pad_sequence(data, batch_first=True)
+            label = pad_sequence(label, batch_first=True)
         model.hidden1 = (model.hidden1[0].detach(), model.hidden1[1].detach())
         model.hidden2 = (model.hidden2[0].detach(), model.hidden2[1].detach())
         optimizer.zero_grad()
@@ -87,10 +92,11 @@ def loss_accuracy(model, test_data):
     model.eval()
     loss = correct = count = 0.0
     id_sentences, id_tags = test_data
+    model.init_hidden()
     for i in xrange(0, len(id_sentences), 1):
         print i
         data = id_sentences[i].unsqueeze(0)
-        label = id_tags[i].unsqueeze(0)
+        label = id_tags[i]
         output = model(data)
         loss += F.cross_entropy(output, label)
         pred = output.data.max(1, keepdim=True)[1].view(label.shape)
@@ -115,9 +121,6 @@ def data(train_sentences, train_tagged_sentences, words_id, label_id, for_batch=
     # zipped = map(lambda (words,tags): zip(words, tags), zip(id_sentences, id_tags))
     id_sentences = sorted(id_sentences, key=len, reverse=True)
     id_tags = sorted(id_tags, key=len, reverse=True)
-    if for_batch:
-        id_sentences = pad_sequence(id_sentences, batch_first=True)
-        id_tags = pad_sequence(id_tags, batch_first=True)
     return id_sentences, id_tags
 
 
@@ -144,7 +147,7 @@ if __name__ == '__main__':
     timer = Timer(time.time())
     for epoch in range(0, EPOCHS):
         print('Epoch {}'.format(epoch))
-        if epoch % 3 == 0:
+        if epoch % 2 == 1:
             loss, accuracy = loss_accuracy(acceptor, dev_vecs)
             loss_history.append(loss)
             accuracy_history.append(accuracy)
