@@ -2,7 +2,7 @@ import random
 import time
 import torch
 import torch.nn as nn
-from torch.nn.utils.rnn import pad_sequence
+from torch.nn.utils.rnn import *
 import torch.optim as optim
 import torch.nn.functional as F
 import sys
@@ -11,7 +11,7 @@ from utils import *
 EPOCHS = 10
 HIDDEN_RNN = [10, 10]
 EMBEDDING = 50
-BATCH_SIZE = 1
+BATCH_SIZE = 100
 LR = 0.01
 LR_DECAY = 0.5
 
@@ -44,28 +44,30 @@ class Acceptor(nn.Module):
 
         # The linear layer that maps from hidden state space to tag space
         self.hidden2tag = nn.Linear(hidden_lstm[1], tagset_size)
-        self.init_hidden()
 
-    def init_hidden(self, batch_size=1):
-        # Before we've done anything, we dont have any hidden state.
-        # Refer to the Pytorch documentation to see exactly
-        # why they have this dimensionality.
-        # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-        self.hidden1 = (torch.randn(2, batch_size, self.hidden_lstm[0] // 2),
-                        torch.randn(2, batch_size, self.hidden_lstm[0] // 2))
-        self.hidden2 = (torch.randn(2, batch_size, self.hidden_lstm[1] // 2),
-                        torch.randn(2, batch_size, self.hidden_lstm[1] // 2))
 
-    def forward(self, sentence):
-        embeds = self.word_embeddings(sentence)
-        lstm_out, self.hidden1 = self.lstm1(
-            embeds)
-        lstm_out, self.hidden2 = self.lstm2(
-            lstm_out)
-        if sentence.shape[0] == 1:
+    def forward(self, sentence, batch=True):
+        if batch:
+            embeds = PackedSequence(
+                self.word_embeddings(sentence.data), sentence.batch_sizes)
+            lstm_out, self.hidden1 = self.lstm1(
+                embeds)
+            lstm_out, self.hidden2 = self.lstm2(
+                lstm_out)
+            tag_space = PackedSequence(
+                self.hidden2tag(lstm_out.data), lstm_out.batch_sizes)
+            tag_scores = PackedSequence(
+                F.log_softmax(tag_space.data), tag_space.batch_sizes)
+        else:
+            embeds = self.word_embeddings(sentence)
+            lstm_out, self.hidden1 = self.lstm1(
+                embeds)
+            lstm_out, self.hidden2 = self.lstm2(
+                lstm_out)
             lstm_out = lstm_out.reshape(lstm_out.size(0) * lstm_out.size(1), lstm_out.size(2))
-        tag_space = self.hidden2tag(lstm_out)
-        tag_scores = F.log_softmax(tag_space)  # shape batch,classes,size
+            tag_space = self.hidden2tag(lstm_out)
+            tag_scores = F.log_softmax(tag_space)  # shape batch,classes,size
+
         return tag_scores
 
 
@@ -73,21 +75,19 @@ def train_model(model, optimizer, train_data, batch_size):
     model.train()
     id_sentences, id_tags = train_data
     model.init_hidden(batch_size)
-    for i in xrange(0, 500, batch_size):
+    for i in xrange(0, len(id_sentences), batch_size):
         print i
         data = id_sentences[i:i + batch_size]
         label = id_tags[i:i + batch_size]
-        B = len(label)
-        N = label[0].shape[0]
-        data = pad_sequence(data, batch_first=True)
-        label = pad_sequence(label, batch_first=True)
-        label = label.reshape(N, B)
+        data = pack_sequence(data)
+        label = pack_sequence(label)
         model.hidden1 = (model.hidden1[0].detach(), model.hidden1[1].detach())
         model.hidden2 = (model.hidden2[0].detach(), model.hidden2[1].detach())
         optimizer.zero_grad()
-        output = model(data).reshape(N, -1, B)
-        loss = F.cross_entropy(output, label)
-        loss.backward()
+        output = model(data)
+        loss = PackedSequence(
+            F.cross_entropy(output.data, label.data), output.batch_sizes)
+        loss.data.backward()
         optimizer.step()
 
 
@@ -100,7 +100,7 @@ def loss_accuracy(model, test_data):
         print i
         data = id_sentences[i].unsqueeze(0)
         label = id_tags[i]
-        output = model(data)
+        output = model(data, batch=False)
         loss += F.cross_entropy(output, label)
         pred = output.data.max(1, keepdim=True)[1].view(label.shape)
         correct += (pred == label).cpu().sum().item()
