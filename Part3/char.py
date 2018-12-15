@@ -7,8 +7,9 @@ import sys
 from utils import *
 
 EPOCHS = 10
-HIDDEN_RNN = [100, 10]
-EMBEDDING = 50
+HIDDEN_RNN = [10, 10]
+CHAR_LSTM = 50
+EMBEDDING = 5
 BATCH_SIZE = 100
 LR = 0.01
 LR_DECAY = 0.5
@@ -27,44 +28,72 @@ def get_words_id(word, words_id):
     return words_id[word]
 
 
-class Acceptor(nn.Module):
+class CharEmbedding(nn.Module):
+    def __init__(self, embedding_dim, vocab_size):
+        super(CharEmbedding, self).__init__()
+        self.char_embeddings = nn.Embedding(vocab_size, embedding_dim)
+
+        self.lstm_char = nn.LSTM(embedding_dim, CHAR_LSTM, batch_first=True)
+
+        self.init_hidden()
+
+    def init_hidden(self, batch_size=1):
+        # Before we've done anything, we dont have any hidden state.
+        # Refer to the Pytorch documentation to see exactly
+        # why they have this dimensionality.
+        # The axes semantics are (num_layers, minibatch_size, hidden_dim)
+        self.hidden_char = (torch.randn(2, batch_size, CHAR_LSTM // 2),
+                            torch.randn(2, batch_size, CHAR_LSTM // 2))
+
+    def forward(self, words):
+        embeds = self.char_embeddings(words)
+        lstm_out, self.hidden_char = self.lstm_char(
+            embeds)
+        return lstm_out[:, -1, :]
+
+
+class TransducerByChar(nn.Module):
     def __init__(self, embedding_dim, hidden_lstm, vocab_size, tagset_size=2, bidirectional=True):
-        super(Acceptor, self).__init__()
+        super(TransducerByChar, self).__init__()
         self.bidirectional = bidirectional
         self.hidden_lstm = hidden_lstm
-        self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
+        self.word_embeddings = CharEmbedding(embedding_dim, vocab_size)
 
         # The LSTM takes word embeddings as inputs, and outputs hidden states
         # with dimensionality hidden_dim.
-        self.lstm1 = nn.LSTM(embedding_dim, hidden_lstm[0] // 2, bidirectional=bidirectional, batch_first=True)
+        self.lstm1 = nn.LSTM(CHAR_LSTM, hidden_lstm[0] // 2, bidirectional=bidirectional, batch_first=True)
 
         self.lstm2 = nn.LSTM(hidden_lstm[0], hidden_lstm[1] // 2, bidirectional=bidirectional, batch_first=True)
 
         # The linear layer that maps from hidden state space to tag space
         self.hidden2tag = nn.Linear(hidden_lstm[1], tagset_size)
+        self.init_hidden()
+
+    def eval(self):
+        self.word_embeddings.eval()
+        return self.train(False)
+
+    def init_hidden(self, batch_size=1):
+        # Before we've done anything, we dont have any hidden state.
+        # Refer to the Pytorch documentation to see exactly
+        # why they have this dimensionality.
+        # The axes semantics are (num_layers, minibatch_size, hidden_dim)
+        self.hidden1 = (torch.randn(2, batch_size, self.hidden_lstm[0] // 2),
+                        torch.randn(2, batch_size, self.hidden_lstm[0] // 2))
+        self.hidden2 = (torch.randn(2, batch_size, self.hidden_lstm[1] // 2),
+                        torch.randn(2, batch_size, self.hidden_lstm[1] // 2))
 
     def forward(self, sentence, batch=True):
-        if batch:
-            embeds = PackedSequence(
-                self.word_embeddings(sentence.data), sentence.batch_sizes)
-            lstm_out, self.hidden1 = self.lstm1(
-                embeds)
-            lstm_out, self.hidden2 = self.lstm2(
-                lstm_out)
-            tag_space = PackedSequence(
-                self.hidden2tag(lstm_out.data), lstm_out.batch_sizes)
-            tag_scores = PackedSequence(
-                F.log_softmax(tag_space.data), tag_space.batch_sizes)
-        else:
-            embeds = self.word_embeddings(sentence)
-            lstm_out, self.hidden1 = self.lstm1(
-                embeds)
-            lstm_out, self.hidden2 = self.lstm2(
-                lstm_out)
-            lstm_out = lstm_out.reshape(lstm_out.size(0) * lstm_out.size(1), lstm_out.size(2))
-            tag_space = self.hidden2tag(lstm_out)
-            tag_scores = F.log_softmax(tag_space)  # shape batch,classes,size
-
+        embeds = PackedSequence(
+            self.word_embeddings(sentence.data), sentence.batch_sizes)
+        lstm_out, self.hidden1 = self.lstm1(
+            embeds)
+        lstm_out, self.hidden2 = self.lstm2(
+            lstm_out)
+        tag_space = PackedSequence(
+            self.hidden2tag(lstm_out.data), lstm_out.batch_sizes)
+        tag_scores = PackedSequence(
+            F.log_softmax(tag_space.data), tag_space.batch_sizes)
         return tag_scores
 
 
@@ -72,7 +101,7 @@ def train_model(model, optimizer, train_data, batch_size):
     model.train()
     id_sentences, id_tags = train_data
     model.init_hidden(batch_size)
-    for i in xrange(0, len(id_sentences), batch_size):
+    for i in xrange(0, 500, batch_size):
         print i
         data = id_sentences[i:i + batch_size]
         label = id_tags[i:i + batch_size]
@@ -95,13 +124,14 @@ def loss_accuracy(model, test_data):
     model.init_hidden()
     for i in xrange(0, len(id_sentences), 1):
         print i
-        data = id_sentences[i].unsqueeze(0)
+        data = id_sentences[i:i + 1]
         label = id_tags[i]
-        output = model(data, batch=False)
+        data = pack_sequence(data)
+        output = model(data, batch=False).data
         loss += F.cross_entropy(output, label)
         pred = output.data.max(1, keepdim=True)[1].view(label.shape)
         correct += (pred == label).cpu().sum().item()
-        count += data.shape[0] * data.shape[1]
+        count += label.shape[0]
 
     acc = correct / count
     # loss = loss / count
@@ -112,7 +142,7 @@ def loss_accuracy(model, test_data):
     return loss, acc
 
 
-def data(train_sentences, train_tagged_sentences, words_id, label_id, for_batch=True):
+def data(train_sentences, train_tagged_sentences, words_id, label_id):
     id_sentences = map(
         lambda sentence: torch.tensor([get_words_id(word, words_id) for word in sentence], dtype=torch.long),
         train_sentences)
@@ -124,23 +154,59 @@ def data(train_sentences, train_tagged_sentences, words_id, label_id, for_batch=
     return id_sentences, id_tags
 
 
+def pad(tensor, length):
+    return torch.cat([tensor, tensor.new(length - tensor.size(0), *tensor.size()[1:]).zero_()])
+
+
+def data_by_char(train_sentences, train_tagged_sentences, char_id, label_id, max_len):
+    id_sentences = []
+    for sentence in train_sentences:
+        id_sentence = []
+        for word in sentence:
+            word = torch.tensor([get_words_id(char, char_id) for char in word], dtype=torch.long)
+            word = pad(word, max_len)
+            id_sentence.append(word)
+        id_sentence = torch.stack(id_sentence)
+        id_sentences.append(id_sentence)
+
+    id_tags = map(lambda sentence: torch.tensor([label_id[tag] for tag in sentence], dtype=torch.long),
+                  train_tagged_sentences)
+    id_sentences = sorted(id_sentences, key=len, reverse=True)
+    id_tags = sorted(id_tags, key=len, reverse=True)
+
+    return id_sentences, id_tags
+
+
+def get_set_of_char(words):
+    char = []
+    temp = set(words)
+    for word in list(temp):
+        for chr in word:
+            char.append(chr)
+    return list(set(char))
+
+
 if __name__ == '__main__':
     train_name = sys.argv[1] if len(sys.argv) > 1 else "data/pos/train"
     dev_name = sys.argv[2] if len(sys.argv) > 2 else "data/pos/dev"
-    repr = sys.argv[3] if len(sys.argv) > 3 else "-a"
+
     words, labels = load_train(train_name)
-    words_id = {word: i for i, word in enumerate(list(set(words)) + ["UUUNKKK"])}
+    max_len = max([len(word) for word in words])
+    chars = get_set_of_char(words)
+
+    words_id = {word: i + 1 for i, word in enumerate(list(set(chars)) + ["UUUNKKK"])}
+
     label_id = {label: i for i, label in enumerate(set(labels))}
     id_label = {i: label for label, i in label_id.items()}
 
     train_sentences, train_tagged_sentences = load_train_by_sentence(train_name)
-    train_vecs = data(train_sentences, train_tagged_sentences, words_id, label_id)
+    train_vecs = data_by_char(train_sentences, train_tagged_sentences, words_id, label_id, max_len)
 
     dev_sentences, dev_tagged_sentences = load_train_by_sentence(dev_name)
-    dev_vecs = data(dev_sentences, dev_tagged_sentences, words_id, label_id, for_batch=False)
+    dev_vecs = data_by_char(dev_sentences, dev_tagged_sentences, words_id, label_id, max_len)
 
-    acceptor = Acceptor(EMBEDDING, HIDDEN_RNN, vocab_size=len(words_id), tagset_size=len(label_id))
-    optimizer = optim.Adam(acceptor.parameters(), lr=LR)
+    transducer = TransducerByChar(EMBEDDING, HIDDEN_RNN, vocab_size=len(words_id), tagset_size=len(label_id))
+    optimizer = optim.Adam(transducer.parameters(), lr=LR)
 
     loss_history = []
     accuracy_history = []
@@ -148,14 +214,14 @@ if __name__ == '__main__':
     for epoch in range(0, EPOCHS):
         print('Epoch {}'.format(epoch))
         if epoch % 2 == 1:
-            loss, accuracy = loss_accuracy(acceptor, dev_vecs)
+            loss, accuracy = loss_accuracy(transducer, dev_vecs)
             loss_history.append(loss)
             accuracy_history.append(accuracy)
             if accuracy > 0.98:
                 print('Succeeded in distinguishing the two languages after {} done in {}'
                       .format(epoch, timer.next()))
-                loss, accuracy = loss_accuracy(acceptor, train_vecs)
+                loss, accuracy = loss_accuracy(transducer, train_vecs)
                 break
-        train_model(acceptor, optimizer, train_vecs, batch_size=BATCH_SIZE)
+        train_model(transducer, optimizer, train_vecs, batch_size=BATCH_SIZE)
         for g in optimizer.param_groups:
             g['lr'] = g['lr'] * LR_DECAY
