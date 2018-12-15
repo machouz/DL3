@@ -27,9 +27,9 @@ def get_words_id(word, words_id):
     return words_id[word]
 
 
-class Transducer(nn.Module):
+class Acceptor(nn.Module):
     def __init__(self, embedding_dim, hidden_lstm, vocab_size, tagset_size=2, bidirectional=True):
-        super(Transducer, self).__init__()
+        super(Acceptor, self).__init__()
         self.bidirectional = bidirectional
         self.hidden_lstm = hidden_lstm
         self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
@@ -42,17 +42,6 @@ class Transducer(nn.Module):
 
         # The linear layer that maps from hidden state space to tag space
         self.hidden2tag = nn.Linear(hidden_lstm[1], tagset_size)
-        self.init_hidden()
-
-    def init_hidden(self, batch_size=1):
-        # Before we've done anything, we dont have any hidden state.
-        # Refer to the Pytorch documentation to see exactly
-        # why they have this dimensionality.
-        # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-        self.hidden1 = (torch.randn(2, batch_size, self.hidden_lstm[0] // 2),
-                        torch.randn(2, batch_size, self.hidden_lstm[0] // 2))
-        self.hidden2 = (torch.randn(2, batch_size, self.hidden_lstm[1] // 2),
-                        torch.randn(2, batch_size, self.hidden_lstm[1] // 2))
 
     def forward(self, sentence, batch=True):
         if batch:
@@ -150,8 +139,8 @@ if __name__ == '__main__':
     dev_sentences, dev_tagged_sentences = load_train_by_sentence(dev_name)
     dev_vecs = data(dev_sentences, dev_tagged_sentences, words_id, label_id, for_batch=False)
 
-    transducer = Transducer(EMBEDDING, HIDDEN_RNN, vocab_size=len(words_id), tagset_size=len(label_id))
-    optimizer = optim.Adam(transducer.parameters(), lr=LR)
+    acceptor = Acceptor(EMBEDDING, HIDDEN_RNN, vocab_size=len(words_id), tagset_size=len(label_id))
+    optimizer = optim.Adam(acceptor.parameters(), lr=LR)
 
     loss_history = []
     accuracy_history = []
@@ -159,14 +148,14 @@ if __name__ == '__main__':
     for epoch in range(0, EPOCHS):
         print('Epoch {}'.format(epoch))
         if epoch % 2 == 1:
-            loss, accuracy = loss_accuracy(transducer, dev_vecs)
+            loss, accuracy = loss_accuracy(acceptor, dev_vecs)
             loss_history.append(loss)
             accuracy_history.append(accuracy)
             if accuracy > 0.98:
                 print('Succeeded in distinguishing the two languages after {} done in {}'
                       .format(epoch, timer.next()))
-                loss, accuracy = loss_accuracy(transducer, train_vecs)
+                loss, accuracy = loss_accuracy(acceptor, train_vecs)
                 break
-        train_model(transducer, optimizer, train_vecs, batch_size=BATCH_SIZE)
+        train_model(acceptor, optimizer, train_vecs, batch_size=BATCH_SIZE)
         for g in optimizer.param_groups:
             g['lr'] = g['lr'] * LR_DECAY
