@@ -8,7 +8,10 @@ from gen_examples import *
 from experiment import *
 
 vocab = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
-USE_PALINDROME = True if len(sys.argv) > 1 else False
+method = sys.argv[1]
+USE_PALINDROME = True if method == '1' else False
+USE_SERIES = True if method == '2' else False
+USE_MULTIPLE = True if method == '3' else False
 
 
 def create_graph(name, array_datas=[], array_legends=["Validation"],
@@ -99,13 +102,39 @@ def gen_series(b=4, k=8):
     return pos_examples, neg_examples
 
 
+def gen_multiple(k=7):
+    pos_examples = [str(k * i) for i in xrange(1, 501)]
+    neg_examples = []
+
+    for i in xrange(500):
+        num = random.randint(1, k * 500)
+        while num % 6 == 0:
+            num = random.randint(1, k * 500)
+        neg_examples.append(str(num))
+
+
+    np.savetxt("pos_multiple_" + str(k) + ".txt", pos_examples, fmt="%s")
+    np.savetxt("neg_multiple_" + str(k) + ".txt", neg_examples, fmt="%s")
+
+    return pos_examples, neg_examples
+
 if __name__ == '__main__':
     EPOCHS = 90
     word_id = {word: i for i, word in enumerate(vocab)}
+    # pos_examples, neg_examples = gen_series()
+
+    pos_examples = []
+    neg_examples = []
+
     if USE_PALINDROME:
         print "Using palindrome"
-    # pos_examples, neg_examples = gen_series()
-    pos_examples, neg_examples = gen_palindrome() if USE_PALINDROME else gen_series()
+        pos_examples, neg_examples = gen_palindrome()
+    elif USE_SERIES:
+        print "Using series"
+        pos_examples, neg_examples = gen_series()
+    elif USE_MULTIPLE:
+        print "Using multiple"
+        pos_examples, neg_examples = gen_multiple()
 
     pos_examples = map(lambda sentence: sentence2ids(sentence, word_id), pos_examples)
     pos_examples = map(lambda x: torch.LongTensor(x + [1]), pos_examples)
@@ -140,3 +169,5 @@ if __name__ == '__main__':
         train_model(acceptor, optimizer, train)
         for g in optimizer.param_groups:
             g['lr'] = g['lr'] * LR_DECAY
+
+
