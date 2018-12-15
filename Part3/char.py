@@ -8,7 +8,7 @@ from utils import *
 
 EPOCHS = 10
 HIDDEN_RNN = [10, 10]
-CHAR_LSTM = 50
+CHAR_LSTM = 5
 EMBEDDING = 5
 BATCH_SIZE = 100
 LR = 0.01
@@ -69,9 +69,13 @@ class TransducerByChar(nn.Module):
         self.hidden2tag = nn.Linear(hidden_lstm[1], tagset_size)
         self.init_hidden()
 
+    def train(self, mode=True):
+        self.word_embeddings.train(mode)
+        return super(TransducerByChar, self).train(mode)
+
     def eval(self):
         self.word_embeddings.eval()
-        return self.train(False)
+        return super(TransducerByChar, self).train(False)
 
     def init_hidden(self, batch_size=1):
         # Before we've done anything, we dont have any hidden state.
@@ -101,7 +105,7 @@ def train_model(model, optimizer, train_data, batch_size):
     model.train()
     id_sentences, id_tags = train_data
     model.init_hidden(batch_size)
-    for i in xrange(0, 500, batch_size):
+    for i in xrange(0, len(id_sentences), batch_size):
         print i
         data = id_sentences[i:i + batch_size]
         label = id_tags[i:i + batch_size]
