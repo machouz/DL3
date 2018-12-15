@@ -1,6 +1,4 @@
-import random
 import time
-import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import *
 import torch.optim as optim
@@ -9,7 +7,7 @@ import sys
 from utils import *
 
 EPOCHS = 10
-HIDDEN_RNN = [10, 10]
+HIDDEN_RNN = [100, 10]
 EMBEDDING = 50
 BATCH_SIZE = 100
 LR = 0.01
@@ -44,7 +42,6 @@ class Acceptor(nn.Module):
 
         # The linear layer that maps from hidden state space to tag space
         self.hidden2tag = nn.Linear(hidden_lstm[1], tagset_size)
-
 
     def forward(self, sentence, batch=True):
         if batch:
@@ -128,9 +125,9 @@ def data(train_sentences, train_tagged_sentences, words_id, label_id, for_batch=
 
 
 if __name__ == '__main__':
-    train_name = sys.argv[1]  # "data/pos/train"
-    dev_name = sys.argv[2]  # "data/pos/dev"
-
+    train_name = sys.argv[1] if len(sys.argv) > 1 else "data/pos/train"
+    dev_name = sys.argv[2] if len(sys.argv) > 2 else "data/pos/dev"
+    repr = sys.argv[3] if len(sys.argv) > 3 else "-a"
     words, labels = load_train(train_name)
     words_id = {word: i for i, word in enumerate(list(set(words)) + ["UUUNKKK"])}
     label_id = {label: i for i, label in enumerate(set(labels))}
