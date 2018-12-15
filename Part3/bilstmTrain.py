@@ -6,10 +6,10 @@ import torch.nn.functional as F
 import sys
 from utils import *
 
-EPOCHS = 10
-HIDDEN_RNN = [100, 10]
+EPOCHS = 5
+HIDDEN_RNN = [100, 100]
 EMBEDDING = 50
-BATCH_SIZE = 100
+BATCH_SIZE = 500
 LR = 0.01
 LR_DECAY = 0.5
 
@@ -80,6 +80,8 @@ class Transducer(nn.Module):
 
 
 def train_model(model, optimizer, train_data, batch_size):
+    loss_history = []
+    accuracy_history = []
     model.train()
     id_sentences, id_tags = train_data
     model.init_hidden(batch_size)
@@ -99,13 +101,21 @@ def train_model(model, optimizer, train_data, batch_size):
         optimizer.step()
 
 
+        if i % 500 == 0:
+            loss, accuracy = loss_accuracy(transducer, dev_vecs)
+            loss_history.append(loss)
+            accuracy_history.append(accuracy)
+
+    return loss_history, accuracy_history
+
+
+
 def loss_accuracy(model, test_data):
     model.eval()
     loss = correct = count = 0.0
     id_sentences, id_tags = test_data
     model.init_hidden()
     for i in xrange(0, len(id_sentences), 1):
-        print i
         data = id_sentences[i].unsqueeze(0)
         label = id_tags[i]
         output = model(data, batch=False)
@@ -136,9 +146,12 @@ def data(train_sentences, train_tagged_sentences, words_id, label_id, for_batch=
 
 
 if __name__ == '__main__':
-    train_name = sys.argv[1] if len(sys.argv) > 1 else "data/pos/train"
-    dev_name = sys.argv[2] if len(sys.argv) > 2 else "data/pos/dev"
-    repr = sys.argv[3] if len(sys.argv) > 3 else "-a"
+
+    train_name = sys.argv[1] if len(sys.argv) > 1 else "../data/pos/train"
+    dev_name =  "../data/pos/dev"
+    repr = sys.argv[2] if len(sys.argv) > 2 else "-a"
+    model_file = sys.argv[3] if len(sys.argv) > 3 else 'Tranducer1_pos'
+
     words, labels = load_train(train_name)
     words_id = {word: i for i, word in enumerate(list(set(words)) + ["UUUNKKK"])}
     label_id = {label: i for i, label in enumerate(set(labels))}
@@ -158,15 +171,11 @@ if __name__ == '__main__':
     timer = Timer(time.time())
     for epoch in range(0, EPOCHS):
         print('Epoch {}'.format(epoch))
-        if epoch % 2 == 1:
-            loss, accuracy = loss_accuracy(transducer, dev_vecs)
-            loss_history.append(loss)
-            accuracy_history.append(accuracy)
-            if accuracy > 0.98:
-                print('Succeeded in distinguishing the two languages after {} done in {}'
-                      .format(epoch, timer.next()))
-                loss, accuracy = loss_accuracy(transducer, train_vecs)
-                break
-        train_model(transducer, optimizer, train_vecs, batch_size=BATCH_SIZE)
+
+        loss, accuracy = train_model(transducer, optimizer, train_vecs, batch_size=BATCH_SIZE)
+        loss_history += loss
+        accuracy_history += accuracy
         for g in optimizer.param_groups:
             g['lr'] = g['lr'] * LR_DECAY
+
+
