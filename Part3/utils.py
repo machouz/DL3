@@ -92,6 +92,47 @@ def load_train_by_sentence(fname):
     sentences_tag.append(tags)
     return sentences, sentences_tag
 
+def load_train_by_sentence_new(fname):
+    sentences = []
+    sentences_tag = []
+    data = []
+    tags = []
+    in_file = file(fname, 'r')
+    for line in in_file:
+        splitted_data = line.rsplit()
+        if len(splitted_data) == 0:
+            sentences.append(data)
+            sentences_tag.append(tags)
+            data = []
+            tags = []
+        else:
+            word, tag = splitted_data
+            data.append(word)
+            tags.append(tag)
+
+    if len(data) > 0:
+        sentences.append(data)
+        sentences_tag.append(tags)
+    return sentences, sentences_tag
+
+def load_test_by_sentence(fname):
+    sentences = []
+    data = []
+    in_file = file(fname, 'r')
+    for line in in_file:
+        splitted_data = line.rsplit()
+        if len(splitted_data) == 0:
+            sentences.append(data)
+            data = []
+        else:
+            word = line.rstrip()
+            data.append(word)
+
+    if len(data) > 0:
+        sentences.append(data)
+
+    return sentences
+
 
 def load_test(fname):
     begin_word = "***"
@@ -120,6 +161,13 @@ def dic_to_file(dic, fname):
         data.append(key + "\t" + str(label))
     write_to_file(fname, data)
 
+def file_to_dic(fname):
+    data = {}
+    for line in file(fname):
+        key, value = line.split("\t")
+        data[key] = int(value.rstrip())
+
+    return data
 
 def create_id(vec):
     element_id = {}

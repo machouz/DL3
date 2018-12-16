@@ -7,9 +7,9 @@ import sys
 from utils import *
 
 EPOCHS = 5
-HIDDEN_RNN = [100, 100]
+HIDDEN_RNN = [50, 50]
 EMBEDDING = 50
-BATCH_SIZE = 500
+BATCH_SIZE = 20
 LR = 0.01
 LR_DECAY = 0.5
 
@@ -86,7 +86,10 @@ def train_model(model, optimizer, train_data, batch_size):
     id_sentences, id_tags = train_data
     model.init_hidden(batch_size)
     for i in xrange(0, len(id_sentences), batch_size):
-        print i
+        if i % 500 == 0:
+            loss, accuracy = loss_accuracy(transducer, dev_vecs, batch_size)
+            loss_history.append(loss)
+            accuracy_history.append(accuracy)
         data = id_sentences[i:i + batch_size]
         label = id_tags[i:i + batch_size]
         data = pack_sequence(data)
@@ -101,31 +104,31 @@ def train_model(model, optimizer, train_data, batch_size):
         optimizer.step()
 
 
-        if i % 500 == 0:
-            loss, accuracy = loss_accuracy(transducer, dev_vecs)
-            loss_history.append(loss)
-            accuracy_history.append(accuracy)
 
     return loss_history, accuracy_history
 
 
-
-def loss_accuracy(model, test_data):
+def loss_accuracy(model, test_data, batch_size=100):
     model.eval()
     loss = correct = count = 0.0
     id_sentences, id_tags = test_data
     model.init_hidden()
-    for i in xrange(0, len(id_sentences), 1):
-        data = id_sentences[i].unsqueeze(0)
-        label = id_tags[i]
-        output = model(data, batch=False)
-        loss += F.cross_entropy(output, label)
-        pred = output.data.max(1, keepdim=True)[1].view(label.shape)
-        correct += (pred == label).cpu().sum().item()
-        count += data.shape[0] * data.shape[1]
+    for i in xrange(0, len(id_sentences), batch_size):
+        data = id_sentences[i:i + batch_size]
+        label = id_tags[i:i + batch_size]
+        try:
+            data = pack_sequence(data)
+        except RuntimeError:
+            print 'LALALALA'
+        label = pack_sequence(label).data
+        output = model(data)
+        #loss += PackedSequence(F.cross_entropy(output.data, label), output.batch_sizes).data
+        pred = output.data.max(1, keepdim=True)[1].view(label.data.shape)
+        correct += (pred == label.data).cpu().sum().item()
+        count += label.data.shape[0]
 
     acc = correct / count
-    # loss = loss / count
+    loss = loss / count
 
     print('Total loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
         loss, correct, count, 100. * acc))
@@ -148,19 +151,20 @@ def data(train_sentences, train_tagged_sentences, words_id, label_id, for_batch=
 if __name__ == '__main__':
 
     train_name = sys.argv[1] if len(sys.argv) > 1 else "../data/pos/train"
-    dev_name =  "../data/pos/dev"
+    dev_name = "../data/pos/dev"
     repr = sys.argv[2] if len(sys.argv) > 2 else "-a"
-    model_file = sys.argv[3] if len(sys.argv) > 3 else 'Tranducer1_pos'
+    model_file = sys.argv[3] if len(sys.argv) > 3 else 'Transducer1_pos'
+    w2i_file = sys.argv[4] if len(sys.argv) > 4 else 'w2i_pos'
 
     words, labels = load_train(train_name)
     words_id = {word: i for i, word in enumerate(list(set(words)) + ["UUUNKKK"])}
     label_id = {label: i for i, label in enumerate(set(labels))}
     id_label = {i: label for label, i in label_id.items()}
 
-    train_sentences, train_tagged_sentences = load_train_by_sentence(train_name)
+    train_sentences, train_tagged_sentences = load_train_by_sentence_new(train_name)
     train_vecs = data(train_sentences, train_tagged_sentences, words_id, label_id)
 
-    dev_sentences, dev_tagged_sentences = load_train_by_sentence(dev_name)
+    dev_sentences, dev_tagged_sentences = load_train_by_sentence_new(dev_name)
     dev_vecs = data(dev_sentences, dev_tagged_sentences, words_id, label_id, for_batch=False)
 
     transducer = Transducer(EMBEDDING, HIDDEN_RNN, vocab_size=len(words_id), tagset_size=len(label_id))
@@ -179,3 +183,5 @@ if __name__ == '__main__':
             g['lr'] = g['lr'] * LR_DECAY
 
 
+    torch.save(transducer, model_file)
+    dic_to_file(words_id, w2i_file)
