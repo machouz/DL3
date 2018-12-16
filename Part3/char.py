@@ -7,10 +7,10 @@ import sys
 from utils import *
 
 EPOCHS = 10
-HIDDEN_RNN = [100, 50]
-CHAR_LSTM = 10
-EMBEDDING = 10
-BATCH_SIZE = 500
+HIDDEN_RNN = [50, 50]
+CHAR_LSTM = 50
+EMBEDDING = 50
+BATCH_SIZE = 20
 LR = 0.01
 LR_DECAY = 0.5
 
@@ -216,10 +216,10 @@ if __name__ == '__main__':
     label_id = {label: i for i, label in enumerate(set(labels))}
     id_label = {i: label for label, i in label_id.items()}
 
-    train_sentences, train_tagged_sentences = load_train_by_sentence(train_name)
+    train_sentences, train_tagged_sentences = load_train_by_sentence_new(train_name)
     train_vecs = data_by_char(train_sentences, train_tagged_sentences, words_id, label_id, max_len)
 
-    dev_sentences, dev_tagged_sentences = load_train_by_sentence(dev_name)
+    dev_sentences, dev_tagged_sentences = load_train_by_sentence_new(dev_name)
     dev_vecs = data_by_char(dev_sentences, dev_tagged_sentences, words_id, label_id, max_len)
 
     transducer = TransducerByChar(EMBEDDING, HIDDEN_RNN, vocab_size=len(words_id), tagset_size=len(label_id))
@@ -230,15 +230,6 @@ if __name__ == '__main__':
     timer = Timer(time.time())
     for epoch in range(0, EPOCHS):
         print('Epoch {}'.format(epoch))
-        if epoch % 2 == 1:
-            loss, accuracy = loss_accuracy(transducer, dev_vecs)
-            loss_history.append(loss)
-            accuracy_history.append(accuracy)
-            if accuracy > 0.98:
-                print('Succeeded in distinguishing the two languages after {} done in {}'
-                      .format(epoch, timer.next()))
-                loss, accuracy = loss_accuracy(transducer, train_vecs)
-                break
         train_model(transducer, optimizer, train_vecs, batch_size=BATCH_SIZE)
         for g in optimizer.param_groups:
             g['lr'] = g['lr'] * LR_DECAY

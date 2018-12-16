@@ -74,7 +74,7 @@ class Transducer(nn.Module):
                 lstm_out)
             lstm_out = lstm_out.reshape(lstm_out.size(0) * lstm_out.size(1), lstm_out.size(2))
             tag_space = self.hidden2tag(lstm_out)
-            tag_scores = F.log_softmax(tag_space)  # shape batch,classes,size
+            tag_scores = F.softmax(tag_space)  # shape batch,classes,size
 
         return tag_scores
 
