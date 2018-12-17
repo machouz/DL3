@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+import torch
 
 def get_prefix(word):
     return word[:3] + "p***"
@@ -153,6 +153,10 @@ def load_test(fname):
 
 def write_to_file(fname, data):
     np.savetxt(fname, data, fmt="%s", delimiter='\n')
+
+
+def pad(tensor, length):
+    return torch.cat([tensor, tensor.new(length - tensor.size(0), *tensor.size()[1:]).zero_()])
 
 
 def dic_to_file(dic, fname):

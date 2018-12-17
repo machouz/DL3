@@ -171,8 +171,6 @@ def data(train_sentences, train_tagged_sentences, words_id, label_id):
     return id_sentences, id_tags
 
 
-def pad(tensor, length):
-    return torch.cat([tensor, tensor.new(length - tensor.size(0), *tensor.size()[1:]).zero_()])
 
 
 def data_by_char(train_sentences, train_tagged_sentences, char_id, label_id, max_len):
