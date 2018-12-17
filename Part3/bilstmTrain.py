@@ -14,10 +14,10 @@ if __name__ == '__main__':
     dev_name = sys.argv[6] if len(sys.argv) > 6 else "../data/pos/dev"
 
     if repr == "-a":
-        accuracy = transducer1.train_save(train_name, dev_name, model_file, w2i_file, id_label_file)
+        loss_history, accuracy_history = transducer1.train_save(train_name, dev_name, model_file, w2i_file, id_label_file)
     elif repr == "-b":
-        accuracy = char.train_save(train_name, dev_name, model_file, w2i_file, id_label_file)
+        loss_history, accuracy_history = char.train_save(train_name, dev_name, model_file, w2i_file, id_label_file)
     elif repr == "-c":
-        accuracy = transducer3.train_save(train_name, dev_name, model_file, w2i_file, id_label_file)
+        loss_history, accuracy_history = transducer3.train_save(train_name, dev_name, model_file, w2i_file, id_label_file)
     elif repr == "-d":
-        accuracy = transducer4.train_save(train_name, dev_name, model_file, w2i_file, id_label_file)
+        loss_history, accuracy_history = transducer4.train_save(train_name, dev_name, model_file, w2i_file, wc2i_file, id_label_file)

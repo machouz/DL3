@@ -54,6 +54,10 @@ class Transducer(nn.Module):
         self.hidden2 = (torch.randn(2, batch_size, self.hidden_lstm[1] // 2),
                         torch.randn(2, batch_size, self.hidden_lstm[1] // 2))
 
+    def detach_hidden(self):
+        self.hidden1 = (self.hidden1[0].detach(), self.hidden1[1].detach())
+        self.hidden2 = (self.hidden2[0].detach(), self.hidden2[1].detach())
+
     def forward(self, sentence, batch=True):
         if batch:
             embeds = PackedSequence(
@@ -179,6 +183,4 @@ def train_save(train_name, dev_name, model_file, w2i_file, id_label_file):
     torch.save(transducer, model_file)
     dic_to_file(words_id, w2i_file)
     dic_to_file(id_label, id_label_file)
-
-
-    return accuracy_history
+    return loss_history, accuracy_history
