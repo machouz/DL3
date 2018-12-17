@@ -171,8 +171,6 @@ def data(train_sentences, train_tagged_sentences, words_id, label_id):
     return id_sentences, id_tags
 
 
-
-
 def data_by_char(train_sentences, train_tagged_sentences, char_id, label_id, max_len):
     id_sentences = []
     for sentence in train_sentences:
