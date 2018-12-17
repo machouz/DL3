@@ -74,7 +74,7 @@ class Transducer(nn.Module):
                 lstm_out)
             lstm_out = lstm_out.reshape(lstm_out.size(0) * lstm_out.size(1), lstm_out.size(2))
             tag_space = self.hidden2tag(lstm_out)
-            tag_scores = F.log_softmax(tag_space)  # shape batch,classes,size
+            tag_scores = F.softmax(tag_space)  # shape batch,classes,size
 
         return tag_scores
 
@@ -82,7 +82,6 @@ class Transducer(nn.Module):
 def train_model(model, optimizer, train_data, batch_size):
     loss_history = []
     accuracy_history = []
-    model.train()
     id_sentences, id_tags = train_data
     model.init_hidden(batch_size)
     for i in xrange(0, len(id_sentences), batch_size):
@@ -90,6 +89,7 @@ def train_model(model, optimizer, train_data, batch_size):
             loss, accuracy = loss_accuracy(transducer, dev_vecs, batch_size)
             loss_history.append(loss)
             accuracy_history.append(accuracy)
+        model.train()
         data = id_sentences[i:i + batch_size]
         label = id_tags[i:i + batch_size]
         data = pack_sequence(data)
@@ -116,10 +116,7 @@ def loss_accuracy(model, test_data, batch_size=100):
     for i in xrange(0, len(id_sentences), batch_size):
         data = id_sentences[i:i + batch_size]
         label = id_tags[i:i + batch_size]
-        try:
-            data = pack_sequence(data)
-        except RuntimeError:
-            print 'LALALALA'
+        data = pack_sequence(data)
         label = pack_sequence(label).data
         output = model(data)
         #loss += PackedSequence(F.cross_entropy(output.data, label), output.batch_sizes).data

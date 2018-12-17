@@ -6,11 +6,11 @@ import torch.nn.functional as F
 import sys
 from utils import *
 
-EPOCHS = 10
-HIDDEN_RNN = [10, 10]
-CHAR_LSTM = 5
-EMBEDDING = 5
-BATCH_SIZE = 100
+EPOCHS = 5
+HIDDEN_RNN = [50, 50]
+CHAR_LSTM = 50
+EMBEDDING = 50
+BATCH_SIZE = 20
 LR = 0.01
 LR_DECAY = 0.5
 
@@ -42,8 +42,11 @@ class CharEmbedding(nn.Module):
         # Refer to the Pytorch documentation to see exactly
         # why they have this dimensionality.
         # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-        self.hidden_char = (torch.randn(2, batch_size, CHAR_LSTM // 2),
-                            torch.randn(2, batch_size, CHAR_LSTM // 2))
+        self.hidden_char = (torch.randn(1, batch_size, CHAR_LSTM),
+                            torch.randn(1, batch_size, CHAR_LSTM))
+
+    def detach_hidden(self):
+        self.hidden_char = (self.hidden_char[0].detach(), self.hidden_char[0].detach())
 
     def forward(self, words):
         embeds = self.char_embeddings(words)
@@ -87,6 +90,11 @@ class TransducerByChar(nn.Module):
         self.hidden2 = (torch.randn(2, batch_size, self.hidden_lstm[1] // 2),
                         torch.randn(2, batch_size, self.hidden_lstm[1] // 2))
 
+    def detach_hidden(self):
+        self.hidden1 = (self.hidden1[0].detach(), self.hidden1[1].detach())
+        self.hidden2 = (self.hidden2[0].detach(), self.hidden2[1].detach())
+        self.word_embeddings.detach_hidden()
+
     def forward(self, sentence, batch=True):
         embeds = PackedSequence(
             self.word_embeddings(sentence.data), sentence.batch_sizes)
@@ -102,17 +110,22 @@ class TransducerByChar(nn.Module):
 
 
 def train_model(model, optimizer, train_data, batch_size):
-    model.train()
+    loss_history = []
+    accuracy_history = []
     id_sentences, id_tags = train_data
     model.init_hidden(batch_size)
     for i in xrange(0, len(id_sentences), batch_size):
         print i
+        if i % 500 == 0:
+            loss, accuracy = loss_accuracy(transducer, dev_vecs, batch_size)
+            loss_history.append(loss)
+            accuracy_history.append(accuracy)
+        model.train()
         data = id_sentences[i:i + batch_size]
         label = id_tags[i:i + batch_size]
         data = pack_sequence(data)
         label = pack_sequence(label)
-        model.hidden1 = (model.hidden1[0].detach(), model.hidden1[1].detach())
-        model.hidden2 = (model.hidden2[0].detach(), model.hidden2[1].detach())
+        model.detach_hidden()
         optimizer.zero_grad()
         output = model(data)
         loss = PackedSequence(
@@ -121,21 +134,21 @@ def train_model(model, optimizer, train_data, batch_size):
         optimizer.step()
 
 
-def loss_accuracy(model, test_data):
+def loss_accuracy(model, test_data, batch_size=100):
     model.eval()
     loss = correct = count = 0.0
     id_sentences, id_tags = test_data
     model.init_hidden()
-    for i in xrange(0, len(id_sentences), 1):
-        print i
-        data = id_sentences[i:i + 1]
-        label = id_tags[i]
+    for i in xrange(0, len(id_sentences), batch_size):
+        data = id_sentences[i:i + batch_size]
+        label = id_tags[i:i + batch_size]
         data = pack_sequence(data)
-        output = model(data, batch=False).data
-        loss += F.cross_entropy(output, label)
-        pred = output.data.max(1, keepdim=True)[1].view(label.shape)
-        correct += (pred == label).cpu().sum().item()
-        count += label.shape[0]
+        label = pack_sequence(label).data
+        output = model(data)
+        loss += float(PackedSequence(F.cross_entropy(output.data, label), output.batch_sizes).data)
+        pred = output.data.max(1, keepdim=True)[1].view(label.data.shape)
+        correct += (pred == label.data).cpu().sum().item()
+        count += label.data.shape[0]
 
     acc = correct / count
     # loss = loss / count
@@ -168,7 +181,7 @@ def data_by_char(train_sentences, train_tagged_sentences, char_id, label_id, max
         id_sentence = []
         for word in sentence:
             word = torch.tensor([get_words_id(char, char_id) for char in word], dtype=torch.long)
-            word = pad(word, max_len)
+            word = pad(word[:20], 20)
             id_sentence.append(word)
         id_sentence = torch.stack(id_sentence)
         id_sentences.append(id_sentence)
@@ -203,10 +216,10 @@ if __name__ == '__main__':
     label_id = {label: i for i, label in enumerate(set(labels))}
     id_label = {i: label for label, i in label_id.items()}
 
-    train_sentences, train_tagged_sentences = load_train_by_sentence(train_name)
+    train_sentences, train_tagged_sentences = load_train_by_sentence_new(train_name)
     train_vecs = data_by_char(train_sentences, train_tagged_sentences, words_id, label_id, max_len)
 
-    dev_sentences, dev_tagged_sentences = load_train_by_sentence(dev_name)
+    dev_sentences, dev_tagged_sentences = load_train_by_sentence_new(dev_name)
     dev_vecs = data_by_char(dev_sentences, dev_tagged_sentences, words_id, label_id, max_len)
 
     transducer = TransducerByChar(EMBEDDING, HIDDEN_RNN, vocab_size=len(words_id), tagset_size=len(label_id))
@@ -217,15 +230,6 @@ if __name__ == '__main__':
     timer = Timer(time.time())
     for epoch in range(0, EPOCHS):
         print('Epoch {}'.format(epoch))
-        if epoch % 2 == 1:
-            loss, accuracy = loss_accuracy(transducer, dev_vecs)
-            loss_history.append(loss)
-            accuracy_history.append(accuracy)
-            if accuracy > 0.98:
-                print('Succeeded in distinguishing the two languages after {} done in {}'
-                      .format(epoch, timer.next()))
-                loss, accuracy = loss_accuracy(transducer, train_vecs)
-                break
         train_model(transducer, optimizer, train_vecs, batch_size=BATCH_SIZE)
         for g in optimizer.param_groups:
             g['lr'] = g['lr'] * LR_DECAY
