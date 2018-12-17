@@ -2,6 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 
+
+PREFIX = '__$$$$'
+SUFFIX = '$$$$__'
+
+
 def get_prefix(word):
     return word[:3] + "p***"
 
@@ -9,6 +14,10 @@ def get_prefix(word):
 def get_suffix(word):
     return "***s" + word[-3:]
 
+def get_words_id(word, words_id):
+    if word not in words_id:
+        return words_id["UUUNKKK"]
+    return words_id[word]
 
 def create_subwords(words):
     prefix_list = []
