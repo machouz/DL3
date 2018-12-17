@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import sys
 from utils import *
 
-EPOCHS = 10
+EPOCHS = 5
 HIDDEN_RNN = [50, 50]
 CHAR_LSTM = 50
 EMBEDDING = 50
