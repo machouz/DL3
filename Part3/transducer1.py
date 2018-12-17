@@ -3,7 +3,6 @@ import torch.nn as nn
 from torch.nn.utils.rnn import *
 import torch.optim as optim
 import torch.nn.functional as F
-import sys
 from utils import *
 
 EPOCHS = 5
@@ -53,6 +52,10 @@ class Transducer(nn.Module):
                         torch.randn(2, batch_size, self.hidden_lstm[0] // 2))
         self.hidden2 = (torch.randn(2, batch_size, self.hidden_lstm[1] // 2),
                         torch.randn(2, batch_size, self.hidden_lstm[1] // 2))
+
+    def detach_hidden(self):
+        self.hidden1 = (self.hidden1[0].detach(), self.hidden1[1].detach())
+        self.hidden2 = (self.hidden2[0].detach(), self.hidden2[1].detach())
 
     def forward(self, sentence, batch=True):
         if batch:

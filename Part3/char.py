@@ -3,7 +3,6 @@ import torch.nn as nn
 from torch.nn.utils.rnn import *
 import torch.optim as optim
 import torch.nn.functional as F
-import sys
 from utils import *
 
 EPOCHS = 5
@@ -50,9 +49,10 @@ class CharEmbedding(nn.Module):
 
     def forward(self, words):
         embeds = self.char_embeddings(words)
+        inputs_emb = F.dropout(embeds, training=self.training)
         lstm_out, self.hidden_char = self.lstm_char(
-            embeds)
-        return lstm_out[:, -1, :]
+            inputs_emb)
+        return lstm_out.sum(dim=1)
 
 
 class TransducerByChar(nn.Module):
@@ -64,9 +64,10 @@ class TransducerByChar(nn.Module):
 
         # The LSTM takes word embeddings as inputs, and outputs hidden states
         # with dimensionality hidden_dim.
-        self.lstm1 = nn.LSTM(CHAR_LSTM, hidden_lstm[0] // 2, bidirectional=bidirectional, batch_first=True)
+        self.lstm1 = nn.LSTM(CHAR_LSTM, hidden_lstm[0] // 2, bidirectional=bidirectional, batch_first=True, dropout=0.5)
 
-        self.lstm2 = nn.LSTM(hidden_lstm[0], hidden_lstm[1] // 2, bidirectional=bidirectional, batch_first=True)
+        self.lstm2 = nn.LSTM(hidden_lstm[0], hidden_lstm[1] // 2, bidirectional=bidirectional, batch_first=True,
+                             dropout=0.5)
 
         # The linear layer that maps from hidden state space to tag space
         self.hidden2tag = nn.Linear(hidden_lstm[1], tagset_size)
@@ -227,7 +228,6 @@ def train_save(train_name, dev_name, model_file, w2i_file, id_label_file):
 
     loss_history = []
     accuracy_history = []
-    timer = Timer(time.time())
     for epoch in range(0, EPOCHS):
         print('Epoch {}'.format(epoch))
         loss, accuracy = train_model(transducer, optimizer, train_vecs, BATCH_SIZE, dev_vecs)
