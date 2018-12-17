@@ -238,7 +238,5 @@ def train_save(train_name, dev_name, model_file, w2i_file, id_label_file):
     torch.save(transducer, model_file)
     dic_to_file(words_id, w2i_file)
     dic_to_file(id_label, id_label_file)
+    return loss_history, accuracy_history
 
-
-if __name__ == '__main__':
-    train_save()
