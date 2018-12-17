@@ -28,12 +28,12 @@ def get_words_id(word, words_id):
 
 
 class TransducerWindow(nn.Module):
-    def __init__(self, embedding_dim, hidden_lstm, vocab_size, tagset_size=2, bidirectional=True):
+    def __init__(self, embedding_dim, hidden_lstm, vocab_size, vocab, tagset_size=2, bidirectional=True):
         super(TransducerWindow, self).__init__()
         self.bidirectional = bidirectional
         self.hidden_lstm = hidden_lstm
         self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
-        self.sub_words_embeddings = self.init_sub_words()
+        self.sub_words_embeddings = self.init_sub_words(vocab)
 
         # The LSTM takes word embeddings as inputs, and outputs hidden states
         # with dimensionality hidden_dim.
@@ -55,6 +55,9 @@ class TransducerWindow(nn.Module):
                         torch.randn(2, batch_size, self.hidden_lstm[0] // 2))
         self.hidden2 = (torch.randn(2, batch_size, self.hidden_lstm[1] // 2),
                         torch.randn(2, batch_size, self.hidden_lstm[1] // 2))
+
+    def init_sub_words(self, vocab):
+        prefix = '_$'
 
     def forward(self, sentence, batch=True):
         if batch:
