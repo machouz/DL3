@@ -67,7 +67,7 @@ class TransducerWindow(nn.Module):
             tag_scores = PackedSequence(
                 F.log_softmax(tag_space.data), tag_space.batch_sizes)
         else:
-            embeds = self.word_embeddings(sentence).sum(dim=0)
+            embeds = self.word_embeddings(sentence).sum(dim=2)
             lstm_out, self.hidden1 = self.lstm1(
                 embeds)
             lstm_out, self.hidden2 = self.lstm2(
@@ -210,7 +210,7 @@ def train_save(train_name, dev_name, model_file, w2i_file, id_label_file):
     dic_to_file(id_label, id_label_file)
 
 
-    return accuracy_history
+    return loss_history, accuracy_history
 
 
 
@@ -222,5 +222,5 @@ if __name__ == '__main__':
     id_label_file = sys.argv[5] if len(sys.argv) > 5 else 'Transducer3_pos_i2l'
     dev_name = sys.argv[6] if len(sys.argv) > 6 else "../data/pos/dev"
 
-    accuracy = train_save(train_name, dev_name, model_file, w2i_file, id_label_file)
+    loss_history, accuracy_history = train_save(train_name, dev_name, model_file, w2i_file, id_label_file)
 
