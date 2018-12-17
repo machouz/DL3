@@ -158,14 +158,23 @@ def write_to_file(fname, data):
 def dic_to_file(dic, fname):
     data = []
     for key, label in dic.items():
-        data.append(key + "\t" + str(label))
+        data.append(str(key) + "\t" + str(label))
     write_to_file(fname, data)
+
 
 def file_to_dic(fname):
     data = {}
     for line in file(fname):
         key, value = line.split("\t")
         data[key] = int(value.rstrip())
+
+    return data
+
+def file_to_dic_id(fname):
+    data = {}
+    for line in file(fname):
+        key, value = line.split("\t")
+        data[int(key)] = value.rstrip()
 
     return data
 

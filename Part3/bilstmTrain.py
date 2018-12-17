@@ -150,11 +150,12 @@ def data(train_sentences, train_tagged_sentences, words_id, label_id, for_batch=
 
 if __name__ == '__main__':
 
-    train_name = sys.argv[1] if len(sys.argv) > 1 else "../data/pos/train"
-    dev_name = "../data/pos/dev"
+    train_name = sys.argv[1] if len(sys.argv) > 1 else "../data/ner/train"
+    dev_name = "../data/ner/dev"
     repr = sys.argv[2] if len(sys.argv) > 2 else "-a"
-    model_file = sys.argv[3] if len(sys.argv) > 3 else 'Transducer1_pos'
-    w2i_file = sys.argv[4] if len(sys.argv) > 4 else 'w2i_pos'
+    model_file = sys.argv[3] if len(sys.argv) > 3 else 'Transducer1_ner'
+    w2i_file = sys.argv[4] if len(sys.argv) > 4 else 'w2i_ner'
+    id_label_file = sys.argv[5] if len(sys.argv) > 5 else 'id_label_ner'
 
     words, labels = load_train(train_name)
     words_id = {word: i for i, word in enumerate(list(set(words)) + ["UUUNKKK"])}
@@ -183,5 +184,6 @@ if __name__ == '__main__':
             g['lr'] = g['lr'] * LR_DECAY
 
 
-    torch.save(transducer, model_file)
-    dic_to_file(words_id, w2i_file)
+    #torch.save(transducer, model_file)
+    #dic_to_file(words_id, w2i_file)
+    #dic_to_file(id_label, id_label_file)
