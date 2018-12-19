@@ -50,18 +50,17 @@ class TransducerConcat(nn.Module):
         return super(TransducerConcat, self).train(mode)
 
     def forward(self, sentence, batch=True):
-        if batch:
-            sentences_by_word, sentences_by_char = sentence
-            first_out = self.transducer1(sentences_by_word, batch)
-            second_out = self.transducer2(sentences_by_char, batch)
-            concated = PackedSequence(
-                torch.cat((first_out.data, second_out.data), dim=-1), first_out.batch_sizes)
-            concated = PackedSequence(
-                F.dropout(concated.data, training=self.training), concated.batch_sizes)
-            tag_space = PackedSequence(
-                self.hidden2tag(concated.data), concated.batch_sizes)
-            tag_scores = PackedSequence(
-                F.log_softmax(tag_space.data), tag_space.batch_sizes)
+        sentences_by_word, sentences_by_char = sentence
+        first_out = self.transducer1(sentences_by_word, batch)
+        second_out = self.transducer2(sentences_by_char, batch)
+        concated = PackedSequence(
+            torch.cat((first_out.data, second_out.data), dim=-1), first_out.batch_sizes)
+        concated = PackedSequence(
+            F.dropout(concated.data, training=self.training), concated.batch_sizes)
+        tag_space = PackedSequence(
+            self.hidden2tag(concated.data), concated.batch_sizes)
+        tag_scores = PackedSequence(
+            F.log_softmax(tag_space.data), tag_space.batch_sizes)
         return tag_scores
 
 
