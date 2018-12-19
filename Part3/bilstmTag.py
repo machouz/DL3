@@ -59,7 +59,7 @@ if __name__ == '__main__':
     w2i = sys.argv[4] if len(sys.argv) > 4 else 'Transducer3_pos_w2i'
     i2label = sys.argv[5] if len(sys.argv) > 5 else 'Transducer3_pos_i2l'
     output_file = sys.argv[6] if len(sys.argv) > 6 else 'test4.pos.txt'
-    wc2i_file = sys.argv[7] if len(sys.argv) > 7 else "Transducer2_ner_wc2i"
+    wc2i_file = sys.argv[7] if len(sys.argv) > 7 else "Transducer4_ner_wc2i"
 
 
     the_model = torch.load(model_file)
