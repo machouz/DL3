@@ -1,0 +1,55 @@
+python bilstmTrain.py -a ../data/pos/train ../Result/Transducer\ 1/Transducer1_pos ../Result/Transducer\ 1/Transducer1_pos_w2i ../Result/Transducer\ 1/Transducer1_pos_i2l ../data/pos/dev
+
+
+python bilstmTrain.py -b ../data/pos/train  ../Result/Transducer\ 2/Transducer2_pos ../Result/Transducer\ 2/Transducer2_pos_w2i ../Result/Transducer\ 2/Transducer2_pos_i2l ../data/pos/dev
+
+
+python bilstmTrain.py -c ../data/pos/train ../Result/Transducer\ 3/Transducer3_pos ../Result/Transducer\ 3/Transducer3_pos_w2i ../Result/Transducer\ 3/Transducer3_pos_i2l ../data/pos/dev
+
+
+python bilstmTrain.py -d ../data/pos/train  ../Result/Transducer\ 4/Transducer4_pos ../Result/Transducer\ 4/Transducer4_pos_w2i ../Result/Transducer\ 4/Transducer4_pos_i2l ../data/pos/dev ../Result/Transducer\ 4/Transducer4_pos_wc2i
+
+
+--
+
+python bilstmTrain.py -a ../data/ner/train ../Result/Transducer\ 1/Transducer1_ner ../Result/Transducer\ 1/Transducer1_ner_w2i ../Result/Transducer\ 1/Transducer1_ner_i2l ../data/ner/dev
+
+
+python bilstmTrain.py -b ../data/ner/train  ../Result/Transducer\ 2/Transducer2_ner ../Result/Transducer\ 2/Transducer2_ner_w2i ../Result/Transducer\ 2/Transducer2_ner_i2l ../data/ner/dev
+
+
+python bilstmTrain.py -c ../data/ner/train ../Result/Transducer\ 3/Transducer3_ner ../Result/Transducer\ 3/Transducer3_ner_w2i ../Result/Transducer\ 3/Transducer3_ner_i2l ../data/ner/dev
+
+
+python bilstmTrain.py -d ../data/ner/train  ../Result/Transducer\ 4/Transducer4_ner ../Result/Transducer\ 4/Transducer4_pner_w2i ../Result/Transducer\ 4/Transducer4_ner_i2l ../data/ner/dev ../Result/Transducer\ 4/Transducer4_ner_wc2i
+
+
+
+
+
+----------------------------------------------
+
+
+
+python bilstmTag.py -a ../Result/Transducer\ 1/Transducer1_pos ../data/pos/test ../Result/Transducer\ 1/Transducer1_pos_w2i ../Result/Transducer\ 1/Transducer1_pos_i2l test4.pos1.txt
+
+python bilstmTag.py -b ../Result/Transducer\ 2/Transducer2_pos ../data/pos/test ../Result/Transducer\ 2/Transducer2_pos_w2i ../Result/Transducer\ 2/Transducer2_pos_i2l test4.pos2.txt 
+
+python bilstmTag.py -c ../Result/Transducer\ 3/Transducer3_pos ../data/pos/test ../Result/Transducer\ 3/Transducer3_pos_w2i ../Result/Transducer\ 3/Transducer3_pos_i2l test4.pos3.txt 
+
+
+python bilstmTag.py -d ../Result/Transducer\ 4/Transducer4_pos ../data/pos/test ../Result/Transducer\ 4/Transducer4_pos_w2i ../Result/Transducer\ 4/Transducer4_pos_i2l test4.pos4.txt ../Result/Transducer\ 4/Transducer4_pos_wc2i
+
+
+
+
+
+
+python bilstmTag.py -a ../Result/Transducer\ 1/Transducer1_ner ../data/ner/test ../Result/Transducer\ 1/Transducer1_ner_w2i ../Result/Transducer\ 1/Transducer1_ner_i2l test4.ner1.txt
+
+python bilstmTag.py -b ../Result/Transducer\ 2/Transducer2_ner ../data/ner/test ../Result/Transducer\ 2/Transducer2_ner_w2i ../Result/Transducer\ 2/Transducer2_ner_i2l test4.ner2.txt 
+
+python bilstmTag.py -c ../Result/Transducer\ 3/Transducer3_ner ../data/ner/test ../Result/Transducer\ 3/Transducer3_ner_w2i ../Result/Transducer\ 3/Transducer3_ner_i2l test4.ner3.txt 
+
+
+python bilstmTag.py -d ../Result/Transducer\ 4/Transducer4_ner ../data/ner/test ../Result/Transducer\ 4/Transducer4_ner_w2i ../Result/Transducer\ 4/Transducer4_ner_i2l test4.ner4.txt ../Result/Transducer\ 4/Transducer4_ner_wc2i
