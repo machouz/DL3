@@ -72,7 +72,7 @@ def train_model(model, optimizer, train_data, batch_size, dev_vecs):
     id_sentences_by_word, id_tags_by_word = train_vecs_by_word
     id_sentences_by_char, id_tags_by_char = train_vecs_by_char
     model.init_hidden(batch_size)
-    for i in xrange(0, len(id_sentences_by_word), batch_size):
+    for i in xrange(0, 500, batch_size):
         if i % 500 == 0:
             loss, accuracy = loss_accuracy(model, dev_vecs, batch_size)
             loss_history.append(loss)
@@ -178,7 +178,7 @@ def train_save(train_name, dev_name, model_file, w2i_file, wc2i_file, id_label_f
     dev_vecs_by_char = data_by_char(dev_sentences, dev_tagged_sentences, words_by_char_id, label_id, max_len)
     dev_vecs = dev_vecs_by_word, dev_vecs_by_char
 
-    transducer = TransducerConcat(EMBEDDING, HIDDEN_RNN, vocab_size1=len(words_id), vocab_size2=len(words_by_char_id),
+    transducer = TransducerConcat(EMBEDDING, HIDDEN_RNN, vocab_size1=len(words_id), vocab_size2=len(words_by_char_id) + 1,
                                   tagset_size=len(label_id))
     optimizer = optim.Adam(transducer.parameters(), lr=LR)
 
