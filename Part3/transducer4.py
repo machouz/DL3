@@ -6,7 +6,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from utils import *
 
-EPOCHS = 5
+EPOCHS = 1
 HIDDEN_RNN = [50, 50]
 EMBEDDING = 50
 BATCH_SIZE = 20
@@ -54,7 +54,7 @@ class TransducerConcat(nn.Module):
         first_out = self.transducer1(sentences_by_word, batch)
         second_out = self.transducer2(sentences_by_char, batch)
         concated = PackedSequence(
-            torch.cat((first_out.data, second_out.data), dim=-1), first_out.batch_sizes)
+            torch.cat((first_out.data, second_out.data), dim=-1), second_out.batch_sizes)
         concated = PackedSequence(
             F.dropout(concated.data, training=self.training), concated.batch_sizes)
         tag_space = PackedSequence(
@@ -105,7 +105,7 @@ def loss_accuracy(model, test_data, batch_size=100):
         label = id_tags_by_word[i:i + batch_size]
         label = pack_sequence(label).data
         output = model(data)
-        loss += float(PackedSequence(F.cross_entropy(output.data, label), output.batch_sizes).data)
+        #loss += float(PackedSequence(F.cross_entropy(output.data, label), output.batch_sizes).data)
         pred = output.data.max(1, keepdim=True)[1].view(label.data.shape)
         correct += (pred == label.data).cpu().sum().item()
         count += label.data.shape[0]

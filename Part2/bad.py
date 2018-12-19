@@ -2,13 +2,13 @@ import sys
 import numpy as np
 import random
 import matplotlib.pyplot as plt
-
-sys.path.append('../Part1/')
+import os
+sys.path.append(os.path.abspath(os.path.dirname(__file__) + '/../Part1/'))
 from gen_examples import *
 from experiment import *
 
 vocab = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
-method = sys.argv[1]
+method = sys.argv[1] if len(sys.argv) > 1 else '1'
 USE_PALINDROME = True if method == '1' else False
 USE_SERIES = True if method == '2' else False
 USE_MULTIPLE = True if method == '3' else False
