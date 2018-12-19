@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 
-
 PREFIX = '__$$$$'
 SUFFIX = '$$$$__'
 
@@ -14,10 +13,12 @@ def get_prefix(word):
 def get_suffix(word):
     return "***s" + word[-3:]
 
+
 def get_words_id(word, words_id):
     if word not in words_id:
         return words_id["UUUNKKK"]
     return words_id[word]
+
 
 def create_subwords(words):
     prefix_list = []
@@ -39,8 +40,8 @@ def create_graph(name, array_datas=[], array_legends=["Validation"],
     for data in array_datas:
         line, = plt.plot(data)
         lines.append(line)
-    plt.title(name)
-    plt.legend(lines, array_legends)
+        plt.title(name)
+    plt.legend(lines, array_legends, loc=4)
     plt.ylabel(ylabel)
     plt.xlabel(xlabel)
     plt.show()
@@ -101,6 +102,7 @@ def load_train_by_sentence(fname):
     sentences_tag.append(tags)
     return sentences, sentences_tag
 
+
 def load_train_by_sentence_new(fname):
     sentences = []
     sentences_tag = []
@@ -123,6 +125,7 @@ def load_train_by_sentence_new(fname):
         sentences.append(data)
         sentences_tag.append(tags)
     return sentences, sentences_tag
+
 
 def load_test_by_sentence(fname):
     sentences = []
@@ -183,6 +186,7 @@ def file_to_dic(fname):
 
     return data
 
+
 def file_to_dic_id(fname):
     data = {}
     for line in file(fname):
@@ -190,6 +194,7 @@ def file_to_dic_id(fname):
         data[int(key)] = value.rstrip()
 
     return data
+
 
 def create_id(vec):
     element_id = {}
