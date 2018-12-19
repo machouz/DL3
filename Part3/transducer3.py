@@ -119,7 +119,7 @@ def loss_accuracy(model, test_data, batch_size=100):
         data = pack_sequence(data)
         label = pack_sequence(label).data
         output = model(data)
-        loss += PackedSequence(F.cross_entropy(output.data, label), output.batch_sizes).data
+        #loss += PackedSequence(F.cross_entropy(output.data, label), output.batch_sizes).data
         pred = output.data.max(1, keepdim=True)[1].view(label.data.shape)
         correct += (pred == label.data).cpu().sum().item()
         count += label.data.shape[0]

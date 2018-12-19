@@ -63,8 +63,6 @@ if __name__ == '__main__':
 
     the_model = torch.load(model_file)
 
-
-
     output = []
     test_file = load_test_by_sentence(input_file)
     words_id = file_to_dic(w2i)
