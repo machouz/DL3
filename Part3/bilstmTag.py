@@ -7,6 +7,7 @@ import sys
 import torch
 from bilstmTrain import *
 from utils import *
+from transducer1 import *
 import char
 
 

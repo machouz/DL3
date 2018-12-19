@@ -183,7 +183,6 @@ def file_to_dic(fname):
     for line in file(fname):
         key, value = line.split("\t")
         data[key] = int(value.rstrip())
-
     return data
 
 
