@@ -223,7 +223,7 @@ def train_save(train_name, dev_name, model_file, w2i_file, id_label_file):
     dev_sentences, dev_tagged_sentences = load_train_by_sentence_new(dev_name)
     dev_vecs = data_by_char(dev_sentences, dev_tagged_sentences, words_id, label_id, max_len)
 
-    transducer = TransducerByChar(EMBEDDING, HIDDEN_RNN, vocab_size=len(words_id), tagset_size=len(label_id))
+    transducer = TransducerByChar(EMBEDDING, HIDDEN_RNN, vocab_size=len(words_id) + 1, tagset_size=len(label_id))
     optimizer = optim.Adam(transducer.parameters(), lr=LR)
 
     loss_history = []
@@ -239,4 +239,3 @@ def train_save(train_name, dev_name, model_file, w2i_file, id_label_file):
     dic_to_file(words_id, w2i_file)
     dic_to_file(id_label, id_label_file)
     return loss_history, accuracy_history
-
