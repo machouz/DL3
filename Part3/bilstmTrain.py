@@ -3,9 +3,11 @@ import char
 import transducer3
 import transducer4
 import sys
+import time
 
 if __name__ == '__main__':
 
+    start = time.time()
     repr = sys.argv[1] if len(sys.argv) > 1 else "-d"
     train_name = sys.argv[2] if len(sys.argv) > 2 else "data/ner/train"
     model_file = sys.argv[3] if len(sys.argv) > 3 else 'Transducer4_ner'
@@ -22,3 +24,7 @@ if __name__ == '__main__':
         loss_history, accuracy_history = transducer3.train_save(train_name, dev_name, model_file, w2i_file, id_label_file)
     elif repr == "-d":
         loss_history, accuracy_history = transducer4.train_save(train_name, dev_name, model_file, w2i_file, wc2i_file, id_label_file)
+
+    end = time.time() - start
+
+    print "Training", end

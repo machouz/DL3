@@ -9,7 +9,7 @@ EPOCHS = 5
 HIDDEN_RNN = [50, 50]
 CHAR_LSTM = 50
 EMBEDDING = 50
-BATCH_SIZE = 20
+BATCH_SIZE = 100
 LR = 0.01
 LR_DECAY = 0.5
 
@@ -146,7 +146,7 @@ def loss_accuracy(model, test_data, batch_size=100):
         data = pack_sequence(data)
         label = pack_sequence(label).data
         output = model(data)
-        loss += float(PackedSequence(F.cross_entropy(output.data, label), output.batch_sizes).data)
+        #loss += float(PackedSequence(F.cross_entropy(output.data, label), output.batch_sizes).data)
         pred = output.data.max(1, keepdim=True)[1].view(label.data.shape)
         correct += (pred == label.data).cpu().sum().item()
         count += label.data.shape[0]

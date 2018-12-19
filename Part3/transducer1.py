@@ -9,7 +9,7 @@ from utils import *
 EPOCHS = 5
 HIDDEN_RNN = [50, 50]
 EMBEDDING = 50
-BATCH_SIZE = 20
+BATCH_SIZE = 100
 LR = 0.01
 LR_DECAY = 0.5
 

@@ -6,10 +6,10 @@ import torch.optim as optim
 import torch.nn.functional as F
 from utils import *
 
-EPOCHS = 1
+EPOCHS = 5
 HIDDEN_RNN = [50, 50]
 EMBEDDING = 50
-BATCH_SIZE = 20
+BATCH_SIZE = 100
 LR = 0.01
 LR_DECAY = 0.5
 
@@ -72,7 +72,7 @@ def train_model(model, optimizer, train_data, batch_size, dev_vecs):
     id_sentences_by_word, id_tags_by_word = train_vecs_by_word
     id_sentences_by_char, id_tags_by_char = train_vecs_by_char
     model.init_hidden(batch_size)
-    for i in xrange(0, 500, batch_size):
+    for i in xrange(0, len(id_sentences_by_word), batch_size):
         if i % 500 == 0:
             loss, accuracy = loss_accuracy(model, dev_vecs, batch_size)
             loss_history.append(loss)

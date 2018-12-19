@@ -56,6 +56,9 @@ def write_to_file(test, output, fname):
 
 
 if __name__ == '__main__':
+
+    start = time.time()
+
     repr = sys.argv[1] if len(sys.argv) > 1 else '-b'
     model_file = sys.argv[2] if len(sys.argv) > 2 else "Transducer2_pos"
     input_file = sys.argv[3] if len(sys.argv) > 3 else "../data/pos/test"
@@ -88,3 +91,7 @@ if __name__ == '__main__':
         output.append(labels)
 
     write_to_file(test_file, output, output_file)
+
+    end = time.time() - start
+
+    print "Predict", end
